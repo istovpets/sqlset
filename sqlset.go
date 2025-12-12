@@ -7,23 +7,37 @@ package sqlset
 
 import "fmt"
 
+// SQLQueriesProvider is the interface for getting SQL queries.
 type SQLQueriesProvider interface {
+	// GetQuery returns a query by set ID and query ID.
+	// If the set or query is not found, it returns an error.
 	GetQuery(setID string, queryID string) (string, error)
+	// MustGetQuery returns a query by set ID and query ID.
+	// It panics if the set or query is not found.
 	MustGetQuery(setID string, queryID string) string
 }
 
+// SQLSetsProvider is the interface for getting information about query sets.
 type SQLSetsProvider interface {
+	// GetAllMetas returns metadata for all registered query sets.
 	GetAllMetas() []QuerySetMeta
 }
 
+// SQLSet is a container for multiple query sets, organized by set ID.
+// It provides methods to access SQL queries and metadata.
+// Use New to create a new instance.
 type SQLSet struct {
 	sets map[string]QuerySet
 }
 
+// GetQuery retrieves a specific SQL query by its set ID and query ID.
+// It returns an error if the query set or the query itself cannot be found.
 func (s *SQLSet) GetQuery(setID string, queryID string) (string, error) {
 	return s.findQuery(setID, queryID)
 }
 
+// MustGetQuery is like GetQuery but panics if the query set or query is not found.
+// This is useful for cases where the query is expected to exist and its absence is a critical error.
 func (s *SQLSet) MustGetQuery(setID string, queryID string) string {
 	q, err := s.findQuery(setID, queryID)
 	if err != nil {
@@ -33,6 +47,8 @@ func (s *SQLSet) MustGetQuery(setID string, queryID string) string {
 	return q
 }
 
+// GetAllMetas returns a slice of metadata for all the query sets loaded.
+// The order of the returned slice is not guaranteed.
 func (s *SQLSet) GetAllMetas() []QuerySetMeta {
 	metas := make([]QuerySetMeta, 0, len(s.sets))
 
@@ -69,11 +85,13 @@ func (s *SQLSet) registerQuerySet(setID string, qs QuerySet) {
 	s.sets[setID] = qs
 }
 
+// QuerySet represents a single set of queries, usually from a single .sql file.
 type QuerySet struct {
 	meta    QuerySetMeta
 	queries map[string]string
 }
 
+// GetMeta returns the metadata associated with the query set.
 func (qs *QuerySet) GetMeta() QuerySetMeta {
 	return qs.meta
 }
@@ -99,8 +117,12 @@ func (qs *QuerySet) findQuery(id string) (string, error) {
 	return q, nil
 }
 
+// QuerySetMeta holds the metadata for a query set.
 type QuerySetMeta struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
+	// ID is the unique identifier for the set, derived from the filename.
+	ID string `json:"id"`
+	// Name is a human-readable name for the query set, from the metadata block.
+	Name string `json:"name"`
+	// Description provides more details about the query set, from the metadata block.
 	Description string `json:"description,omitempty"`
 }

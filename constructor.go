@@ -6,7 +6,18 @@ import (
 	"strings"
 )
 
-// New builds new SQLSet instance from the directory inside the given fs.FS.
+// New creates a new SQLSet by walking the directory tree of the provided fsys.
+// It parses all .sql files it finds and adds them to the SQLSet.
+// The walk starts from the root of the fsys. If you are using embed.FS
+// and your queries are in a subdirectory, you should create a sub-filesystem
+// using fs.Sub.
+//
+// Example with embed.FS:
+//
+//	//go:embed queries
+//	var queriesFS embed.FS
+//
+//	sqlSet, err := sqlset.New(queriesFS)
 func New(fsys fs.FS) (*SQLSet, error) {
 	sqlSet := &SQLSet{}
 
