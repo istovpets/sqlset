@@ -1,6 +1,6 @@
 # SQLSet
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/stoi/sqlset.svg)](https://pkg.go.dev/github.com/stoi/sqlset)
+[![Go Reference](https://pkg.go.dev/badge/github.com/theprogrammer67/sqlset.svg)](https://pkg.go.dev/github.com/theprogrammer67/sqlset)
 
 SQLSet is a simple Go library that provides a convenient way to manage and access SQL queries stored in `.sql` files. It allows you to separate your SQL code from your Go code, making it cleaner and more maintainable.
 
@@ -15,7 +15,7 @@ SQLSet is a simple Go library that provides a convenient way to manage and acces
 ## Installation
 
 ```bash
-go get github.com/stoi/sqlset
+go get github.com/theprogrammer67/sqlset
 ```
 
 ## Usage
@@ -24,22 +24,26 @@ go get github.com/stoi/sqlset
 
 Create a directory (e.g., `queries`) and add your `.sql` files. Each file represents a "query set". The name of the file (without the `.sql` extension) becomes the query set ID.
 
-Inside each file, define your queries using a special `--- meta` comment for metadata and `--- query` comments to mark the beginning of each query.
+Inside each file, define your queries using a special `--META` comment for metadata and `--SQL:` comments to mark the beginning of each query.
+
+End the query or metadata block with a special comment `--end`
 
 **`queries/users.sql`**
 ```sql
---- meta
+--META
 {
     "name": "User Queries",
     "description": "A set of queries for user management."
 }
----
+--end
 
---- query: GetUserByID
+--SQL:GetUserByID
 SELECT id, name, email FROM users WHERE id = ?;
+--end
 
---- query: CreateUser
+--SQL:CreateUser
 INSERT INTO users (name, email) VALUES (?, ?);
+--end
 ```
 
 2.  **Embed and load the queries in your Go application**.
@@ -90,14 +94,15 @@ func main() {
 ### File Format Specification
 
 -   **Metadata Block (Optional)**:
-    -   Starts with `--- meta`.
-    -   Followed by a JSON object containing `name` (string) and `description` (string, optional).
+    -   Starts with `--META`.
+    -   Followed by a JSON object containing  `id` (string, optional), `name` (string, optional) and `description` (string, optional).
     -   There can be only one metadata block per file.
+    -   End with `--end`.
 
 -   **Query Block (Required)**:
-    -   Starts with `--- query: <query_id>`, where `<query_id>` is the unique identifier for the query within the file.
+    -   Starts with `--SQL:<query_id>`, where `<query_id>` is the unique identifier for the query within the file.
     -   The SQL statement follows on the next lines.
-    -   All text until the next `--- query:` block or the end of the file is considered part of the query.
+    -   All text until the next `--end` block is considered part of the query.
 
 ## Contributing
 
