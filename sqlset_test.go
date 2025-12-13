@@ -30,9 +30,12 @@ var testdataInvalidLongLines embed.FS
 
 //nolint:funlen,lll
 func TestSQLSet(t *testing.T) {
-	set, err := sqlset.New(testdataValid)
+	sqlSet, err := sqlset.New(testdataValid)
 	require.NoError(t, err)
-	require.NotNil(t, set)
+	require.NotNil(t, sqlSet)
+
+	var sets sqlset.SQLSetsProvider = sqlSet
+	var queries sqlset.SQLQueriesProvider = sqlSet
 
 	queryTests := []struct {
 		setID         string
@@ -69,7 +72,7 @@ func TestSQLSet(t *testing.T) {
 		t.Run("Get "+test.setID+":"+test.queryID, func(t *testing.T) {
 			t.Parallel()
 
-			query, err := set.Get(test.setID, test.queryID)
+			query, err := queries.Get(test.setID, test.queryID)
 
 			if test.expectedFound {
 				require.NoError(t, err)
@@ -86,7 +89,7 @@ func TestSQLSet(t *testing.T) {
 			var query string
 
 			fn := func() {
-				query = set.MustGet(test.setID, test.queryID)
+				query = queries.MustGet(test.setID, test.queryID)
 			}
 
 			if test.expectedFound {
@@ -99,10 +102,10 @@ func TestSQLSet(t *testing.T) {
 		})
 	}
 
-	t.Run("GetAllMetas", func(t *testing.T) {
+	t.Run("GetSetsMetas", func(t *testing.T) {
 		t.Parallel()
 
-		metas := set.GetAllMetas()
+		metas := sets.GetSetsMetas()
 
 		require.Len(t, metas, 2)
 		assert.Contains(t, metas, sqlset.QuerySetMeta{
@@ -115,6 +118,53 @@ func TestSQLSet(t *testing.T) {
 			Name:        "test2",
 			Description: "Test description 2",
 		})
+	})
+
+	t.Run("GetQueryIDs", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name          string
+			setID         string
+			expectedIDs   []string
+			expectedErr   error
+			expectSuccess bool
+		}{
+			{
+				name:          "get query IDs for test-id-override-1",
+				setID:         "test-id-override-1",
+				expectedIDs:   []string{"GetData1", "GetData2", "GetData3"},
+				expectSuccess: true,
+			},
+			{
+				name:          "get query IDs for test2",
+				setID:         "test2",
+				expectedIDs:   []string{"query1", "query2"},
+				expectSuccess: true,
+			},
+			{
+				name:          "get query IDs for non-existent set",
+				setID:         "nonexistent",
+				expectedErr:   sqlset.ErrNotFound,
+				expectSuccess: false,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+
+				ids, err := sets.GetQueryIDs(test.setID)
+
+				if test.expectSuccess {
+					require.NoError(t, err)
+					assert.Equal(t, test.expectedIDs, ids)
+				} else {
+					require.ErrorIs(t, err, test.expectedErr)
+					assert.Nil(t, ids)
+				}
+			})
+		}
 	})
 }
 

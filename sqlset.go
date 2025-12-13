@@ -5,7 +5,10 @@
 // Also file may contain JSON-encoded query set metadata with name and description.
 package sqlset
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 // SQLQueriesProvider is the interface for getting SQL queries.
 type SQLQueriesProvider interface {
@@ -19,8 +22,10 @@ type SQLQueriesProvider interface {
 
 // SQLSetsProvider is the interface for getting information about query sets.
 type SQLSetsProvider interface {
-	// GetAllMetas returns metadata for all registered query sets.
-	GetAllMetas() []QuerySetMeta
+	// GetSetsMetas returns metadata for all registered query sets.
+	GetSetsMetas() []QuerySetMeta
+	// GetQueryIDs returns a slice of all query IDs.
+	GetQueryIDs(setID string) ([]string, error)
 }
 
 // SQLSet is a container for multiple query sets, organized by set ID.
@@ -47,9 +52,9 @@ func (s *SQLSet) MustGet(setID string, queryID string) string {
 	return q
 }
 
-// GetAllMetas returns a slice of metadata for all the query sets loaded.
+// GetSetsMetas returns a slice of metadata for all the query sets loaded.
 // The order of the returned slice is not guaranteed.
-func (s *SQLSet) GetAllMetas() []QuerySetMeta {
+func (s *SQLSet) GetSetsMetas() []QuerySetMeta {
 	metas := make([]QuerySetMeta, 0, len(s.sets))
 
 	for _, qs := range s.sets {
@@ -57,6 +62,30 @@ func (s *SQLSet) GetAllMetas() []QuerySetMeta {
 	}
 
 	return metas
+}
+
+// GetQueryIDs returns a sorted slice of all query IDs within a specific query set.
+func (s *SQLSet) GetQueryIDs(setID string) ([]string, error) {
+	if s.sets == nil {
+		return nil, fmt.Errorf("%s: %w", setID, ErrQuerySetNotFound)
+	}
+
+	qs, ok := s.sets[setID]
+	if !ok {
+		return nil, fmt.Errorf("%s: %w", setID, ErrQuerySetNotFound)
+	}
+
+	if qs.queries == nil {
+		return []string{}, nil
+	}
+
+	ids := make([]string, 0, len(qs.queries))
+	for id := range qs.queries {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	return ids, nil
 }
 
 func (s *SQLSet) findQuery(setID string, queryID string) (string, error) {

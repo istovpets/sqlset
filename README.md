@@ -84,10 +84,17 @@ func main() {
 	fmt.Println("CreateUser query:", query)
 
     // You can also retrieve metadata for all query sets
-    metas := sqlSet.GetAllMetas()
+    metas := sqlSet.GetSetsMetas()
     for _, meta := range metas {
         fmt.Printf("Set ID: %s, Name: %s, Description: %s\n", meta.ID, meta.Name, meta.Description)
     }
+
+    // You can get a list of all query IDs in a specific set
+    queryIDs, err := sqlSet.GetQueryIDs("users")
+    if err != nil {
+        log.Fatalf("Failed to get query IDs: %v", err)
+    }
+    fmt.Println("Query IDs in 'users' set:", queryIDs) // Output: [CreateUser GetUserByID] (sorted)
 }
 ```
 
