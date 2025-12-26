@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/theprogrammer67/sqlset"
+	"github.com/istovpets/sqlset"
 )
 
 //go:embed queries

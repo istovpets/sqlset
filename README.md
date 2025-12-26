@@ -1,6 +1,6 @@
 # SQLSet
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/theprogrammer67/sqlset.svg)](https://pkg.go.dev/github.com/theprogrammer67/sqlset)
+[![Go Reference](https://pkg.go.dev/badge/github.com/istovpets/sqlset.svg)](https://pkg.go.dev/github.com/istovpets/sqlset)
 
 SQLSet is a simple Go library that provides a convenient way to manage and access SQL queries stored in `.sql` files. It allows you to separate your SQL code from your Go code, making it cleaner and more maintainable.
 
@@ -15,7 +15,7 @@ SQLSet is a simple Go library that provides a convenient way to manage and acces
 ## Installation
 
 ```bash
-go get github.com/theprogrammer67/sqlset
+go get github.com/istovpets/sqlset
 ```
 
 ## Usage

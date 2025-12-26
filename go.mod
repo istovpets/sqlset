@@ -1,4 +1,4 @@
-module github.com/theprogrammer67/sqlset
+module github.com/istovpets/sqlset
 
 go 1.25.3
 
