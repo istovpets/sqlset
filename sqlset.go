@@ -90,7 +90,7 @@ func (s *SQLSet) GetQueryIDs(setID string) ([]string, error) {
 
 func (s *SQLSet) findQuery(setID string, queryID string) (string, error) {
 	if s.sets == nil {
-		return "", fmt.Errorf("%s: %w", setID, ErrQuerySetNotFound)
+		return "", ErrQuerySetsEmpty
 	}
 
 	qs, ok := s.sets[setID]
