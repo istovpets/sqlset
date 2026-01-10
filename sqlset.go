@@ -8,16 +8,17 @@ package sqlset
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // SQLQueriesProvider is the interface for getting SQL queries.
 type SQLQueriesProvider interface {
 	// Get returns a query by set ID and query ID.
 	// If the set or query is not found, it returns an error.
-	Get(setID string, queryID string) (string, error)
+	Get(ids ...string) (string, error)
 	// MustGet returns a query by set ID and query ID.
 	// It panics if the set or query is not found.
-	MustGet(setID string, queryID string) string
+	MustGet(ids ...string) string
 }
 
 // SQLSetsProvider is the interface for getting information about query sets.
@@ -35,16 +36,50 @@ type SQLSet struct {
 	sets map[string]QuerySet
 }
 
-// Get retrieves a specific SQL query by its set ID and query ID.
-// It returns an error if the query set or the query itself cannot be found.
-func (s *SQLSet) Get(setID string, queryID string) (string, error) {
-	return s.findQuery(setID, queryID)
+// Get returns an SQL query by its identifiers.
+//
+// Supported forms:
+//
+//   - Get(setID, queryID)
+//     Returns the query identified by queryID from the query set setID.
+//
+//   - Get("setID.queryID")
+//     Equivalent to Get(setID, queryID).
+//
+//   - Get(queryID)
+//     Returns the query identified by queryID from the only available query set.
+//     If there is more than one query set, an error is returned.
+//
+// An error is returned if:
+//   - the number of arguments is invalid,
+//   - any identifier is empty,
+//   - the query set or query cannot be found.
+func (s *SQLSet) Get(ids ...string) (string, error) {
+	for i, id := range ids {
+		if id == "" {
+			return "", fmt.Errorf("empty argument: %d", i)
+		}
+	}
+
+	l := len(ids)
+	if l == 0 || l > 2 {
+		return "", fmt.Errorf("invalid number of arguments: %d", l)
+	}
+
+	if l == 1 {
+		left, right, ok := strings.Cut(ids[0], ".")
+		if ok {
+			ids = []string{left, right}
+		}
+	}
+
+	return s.findQuery(ids...)
 }
 
 // MustGet is like Get but panics if the query set or query is not found.
 // This is useful for cases where the query is expected to exist and its absence is a critical error.
-func (s *SQLSet) MustGet(setID string, queryID string) string {
-	q, err := s.findQuery(setID, queryID)
+func (s *SQLSet) MustGet(ids ...string) string {
+	q, err := s.Get(ids...)
 	if err != nil {
 		panic(err)
 	}
@@ -88,14 +123,37 @@ func (s *SQLSet) GetQueryIDs(setID string) ([]string, error) {
 	return ids, nil
 }
 
-func (s *SQLSet) findQuery(setID string, queryID string) (string, error) {
+func (s *SQLSet) findQuery(ids ...string) (string, error) {
 	if s.sets == nil {
 		return "", ErrQuerySetsEmpty
 	}
 
-	qs, ok := s.sets[setID]
-	if !ok {
-		return "", fmt.Errorf("%s: %w", setID, ErrQuerySetNotFound)
+	var (
+		qs      QuerySet
+		queryID string
+		ok      bool
+	)
+
+	if len(ids) == 1 {
+		if len(s.sets) > 1 {
+			return "", fmt.Errorf("query set not specified")
+		}
+
+		queryID = ids[0]
+
+		for _, v := range s.sets {
+			qs = v
+			break
+		}
+	} else if len(ids) == 2 {
+		queryID = ids[1]
+
+		qs, ok = s.sets[ids[0]]
+		if !ok {
+			return "", fmt.Errorf("%s: %w", ids[0], ErrQuerySetNotFound)
+		}
+	} else {
+		return "", fmt.Errorf("invalid number of arguments: %d", len(ids))
 	}
 
 	q, err := qs.findQuery(queryID)
@@ -135,7 +193,7 @@ func (qs *QuerySet) registerQuery(id string, query string) {
 
 func (qs *QuerySet) findQuery(id string) (string, error) {
 	if qs.queries == nil {
-		return "", fmt.Errorf("%s: %w", id, ErrQueryNotFound)
+		return "", fmt.Errorf("%s: %w", qs.meta.ID, ErrQuerySetEmpty)
 	}
 
 	q, ok := qs.queries[id]
