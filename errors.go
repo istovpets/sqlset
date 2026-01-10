@@ -8,6 +8,8 @@ import (
 var (
 	// ErrEmpty is the base error for when an object is empty.
 	ErrEmpty = errors.New("empty")
+	// ErrArgumentEmpty indicates that a argument is empty.
+	ErrArgumentEmpty = fmt.Errorf("argument %w", ErrEmpty)
 	// ErrQuerySetsEmpty indicates that a query sets is empty.
 	ErrQuerySetsEmpty = fmt.Errorf("query sets %w", ErrEmpty)
 	// ErrQuerySetEmpty indicates that a query sets is empty.
@@ -23,4 +25,9 @@ var (
 	// ErrMaxLineLenExceeded is returned when a line in a .sql file is too long,
 	// which may indicate a corrupted file.
 	ErrMaxLineLenExceeded = errors.New("line too long, possible line corruption")
+	// ErrInvalidArgCount is returned when a function is called
+	// with an invalid number of arguments.
+	ErrInvalidArgCount = errors.New("invalid number of arguments")
+	// ErrRequiredArgMissing is returned when a required argument is not specified.
+	ErrRequiredArgMissing = errors.New("required argument not specified")
 )

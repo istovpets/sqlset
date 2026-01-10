@@ -57,13 +57,13 @@ type SQLSet struct {
 func (s *SQLSet) Get(ids ...string) (string, error) {
 	for i, id := range ids {
 		if id == "" {
-			return "", fmt.Errorf("empty argument: %d", i)
+			return "", fmt.Errorf("%d: %w", i, ErrArgumentEmpty)
 		}
 	}
 
 	l := len(ids)
 	if l == 0 || l > 2 {
-		return "", fmt.Errorf("invalid number of arguments: %d", l)
+		return "", fmt.Errorf("%d: %w", l, ErrInvalidArgCount)
 	}
 
 	if l == 1 {
@@ -136,7 +136,7 @@ func (s *SQLSet) findQuery(ids ...string) (string, error) {
 
 	if len(ids) == 1 {
 		if len(s.sets) > 1 {
-			return "", fmt.Errorf("query set not specified")
+			return "", fmt.Errorf("query set: %w", ErrRequiredArgMissing)
 		}
 
 		queryID = ids[0]
@@ -153,7 +153,7 @@ func (s *SQLSet) findQuery(ids ...string) (string, error) {
 			return "", fmt.Errorf("%s: %w", ids[0], ErrQuerySetNotFound)
 		}
 	} else {
-		return "", fmt.Errorf("invalid number of arguments: %d", len(ids))
+		return "", fmt.Errorf("%d: %w", len(ids), ErrInvalidArgCount)
 	}
 
 	q, err := qs.findQuery(queryID)

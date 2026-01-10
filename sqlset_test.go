@@ -10,8 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:embed testdata/valid/*.sql
-var testdataValid embed.FS
+//go:embed testdata/valid_multi/*.sql
+var testdataValidMulti embed.FS
+
+//go:embed testdata/valid_single/*.sql
+var testdataValidSingle embed.FS
 
 //go:embed testdata/invalid/meta1.sql
 var testdataInvalidMeta1 embed.FS
@@ -30,7 +33,7 @@ var testdataInvalidLongLines embed.FS
 
 //nolint:funlen,lll
 func TestSQLSet(t *testing.T) {
-	sqlSet, err := sqlset.New(testdataValid)
+	sqlSet, err := sqlset.New(testdataValidMulti)
 	require.NoError(t, err)
 	require.NotNil(t, sqlSet)
 
@@ -40,31 +43,31 @@ func TestSQLSet(t *testing.T) {
 	queryTests := []struct {
 		setID         string
 		queryID       string
-		expected      string
-		expectedFound bool
+		expectedQuery string
+		expectedErr   error
 	}{
 		{
 			setID:         "test-id-override-1",
 			queryID:       "GetData1",
-			expected:      "SELECT '515bbf3c-93c5-476a-8dbc-4a6db4fe3c0c' AS id, 'Igor' AS name, 'en' AS language, 'igor@example.com' AS email, ARRAY['token1','token2'] AS tokens;",
-			expectedFound: true,
+			expectedQuery: "SELECT '515bbf3c-93c5-476a-8dbc-4a6db4fe3c0c' AS id, 'Igor' AS name, 'en' AS language, 'igor@example.com' AS email, ARRAY['token1','token2'] AS tokens;",
+			expectedErr:   nil,
 		},
 		{
 			setID:         "test-id-override-1",
 			queryID:       "GetData2",
-			expected:      "SELECT 'ef84af8f-bb55-4f74-9d7c-3db30e740d20' AS id, 'Alexey' AS name, 'en' AS language, 'alex@example.com' AS email, '{}'::varchar[] as tokens;",
-			expectedFound: true,
+			expectedQuery: "SELECT 'ef84af8f-bb55-4f74-9d7c-3db30e740d20' AS id, 'Alexey' AS name, 'en' AS language, 'alex@example.com' AS email, '{}'::varchar[] as tokens;",
+			expectedErr:   nil,
 		},
 		{
 			setID:         "test-id-override-1",
 			queryID:       "GetData3",
-			expected:      "SELECT 'e192f9e5-5e5c-4bba-b13e-0f9de32ec6bd' AS id, 'Denis' AS name, 'en' AS language, 'denis@example.com' AS email, ARRAY['token3','token4'] AS tokens;",
-			expectedFound: true,
+			expectedQuery: "SELECT 'e192f9e5-5e5c-4bba-b13e-0f9de32ec6bd' AS id, 'Denis' AS name, 'en' AS language, 'denis@example.com' AS email, ARRAY['token3','token4'] AS tokens;",
+			expectedErr:   nil,
 		},
 		{
-			setID:         "test-id-override-1",
-			queryID:       "unknown",
-			expectedFound: false,
+			setID:       "test-id-override-1",
+			queryID:     "unknown",
+			expectedErr: sqlset.ErrNotFound,
 		},
 	}
 
@@ -74,13 +77,13 @@ func TestSQLSet(t *testing.T) {
 
 			query, err := queries.Get(test.setID, test.queryID)
 
-			if test.expectedFound {
+			if test.expectedErr == nil {
 				require.NoError(t, err)
 			} else {
-				require.ErrorIs(t, err, sqlset.ErrNotFound)
+				require.ErrorIs(t, err, test.expectedErr)
 			}
 
-			assert.Equal(t, test.expected, query)
+			assert.Equal(t, test.expectedQuery, query)
 		})
 
 		t.Run("MustGet "+test.setID+":"+test.queryID, func(t *testing.T) {
@@ -92,13 +95,13 @@ func TestSQLSet(t *testing.T) {
 				query = queries.MustGet(test.setID, test.queryID)
 			}
 
-			if test.expectedFound {
+			if test.expectedErr == nil {
 				assert.NotPanics(t, fn)
 			} else {
 				assert.Panics(t, fn)
 			}
 
-			assert.Equal(t, test.expected, query)
+			assert.Equal(t, test.expectedQuery, query)
 		})
 	}
 
@@ -166,6 +169,92 @@ func TestSQLSet(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestSQLSet_Get_SingleArgument(t *testing.T) {
+	t.Parallel()
+
+	sqlSetValid, err := sqlset.New(testdataValidMulti)
+	require.NoError(t, err)
+
+	sqlSetValidSingle, err := sqlset.New(testdataValidSingle)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name          string
+		sqlSet        sqlset.SQLQueriesProvider
+		args          []string
+		expectedQuery string
+		expectedErr   error
+	}{
+		{
+			name:   "get with setID.queryID",
+			sqlSet: sqlSetValid,
+			args:   []string{"test-id-override-1.GetData1"},
+			expectedQuery: "SELECT '515bbf3c-93c5-476a-8dbc-4a6db4fe3c0c' AS id, 'Igor' AS name, 'en' AS language, " +
+				"'igor@example.com' AS email, ARRAY['token1','token2'] AS tokens;",
+		},
+		{
+			name:        "get with unknown setID in setID.queryID",
+			sqlSet:      sqlSetValid,
+			args:        []string{"unknown.GetData1"},
+			expectedErr: sqlset.ErrNotFound,
+		},
+		{
+			name:        "get with unknown queryID in setID.queryID",
+			sqlSet:      sqlSetValid,
+			args:        []string{"test-id-override-1.unknown"},
+			expectedErr: sqlset.ErrNotFound,
+		},
+		{
+			name:   "get with queryID from single set",
+			sqlSet: sqlSetValidSingle,
+			args:   []string{"GetData1"},
+			expectedQuery: "SELECT '515bbf3c-93c5-476a-8dbc-4a6db4fe3c0c' AS id, 'Igor' AS name, 'en' AS language, " +
+				"'igor@example.com' AS email, ARRAY['token1','token2'] AS tokens;",
+			expectedErr: nil,
+		},
+		{
+			name:        "get with queryID from multiple sets",
+			sqlSet:      sqlSetValid,
+			args:        []string{"GetData1"},
+			expectedErr: sqlset.ErrRequiredArgMissing,
+		},
+		{
+			name:        "get with no arguments",
+			sqlSet:      sqlSetValid,
+			args:        []string{},
+			expectedErr: sqlset.ErrInvalidArgCount,
+		},
+		{
+			name:        "get with too many arguments",
+			sqlSet:      sqlSetValid,
+			args:        []string{"a", "b", "c"},
+			expectedErr: sqlset.ErrInvalidArgCount,
+		},
+		{
+			name:        "get with empty argument",
+			sqlSet:      sqlSetValid,
+			args:        []string{""},
+			expectedErr: sqlset.ErrArgumentEmpty,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			query, err := test.sqlSet.Get(test.args...)
+
+			if test.expectedErr != nil {
+				require.ErrorIs(t, err, test.expectedErr)
+				assert.Empty(t, query)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, test.expectedQuery, query)
+			}
+		})
+	}
 }
 
 func TestNew_WhenInvalid_ExpectError(t *testing.T) {
