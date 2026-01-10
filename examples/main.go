@@ -27,12 +27,25 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get query: %v", err)
 	}
-	fmt.Println("GetUserByID query:", query)
+	fmt.Println("GetUserByID query (multi argument):", query)
+
+	query, err = queries.Get("users.CreateUser")
+	if err != nil {
+		log.Fatalf("Failed to get query: %v", err)
+	}
+	fmt.Println("CreateUser query (dot notation):", query)
+
+	query, err = queries.Get("CreateUser")
+	if err != nil {
+		log.Fatalf("Failed to get query: %v", err)
+	}
+	fmt.Println("CreateUser query (single argument):", query)
 
 	// Or, panic if the query is not found
 	query = queries.MustGet("users", "CreateUser")
-	fmt.Println("CreateUser query:", query)
+	fmt.Println("CreateUser query (MustGet method):", query)
 
+	fmt.Println("--------------------------------")
 	// You can also retrieve metadata for all query sets
 	metas := sets.GetSetsMetas()
 	for _, meta := range metas {
