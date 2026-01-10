@@ -85,6 +85,20 @@ func main() {
 	query = sqlSet.MustGet("users", "CreateUser")
 	fmt.Println("CreateUser query:", query)
 
+	// You can also get a query with a single argument if there is only one query set
+	query, err = sqlSet.Get("GetUserByID")
+	if err != nil {
+		log.Fatalf("Failed to get query with single argument: %v", err)
+	}
+	fmt.Println("GetUserByID query (single arg):", query)
+
+	// Or using dot notation
+	query, err = sqlSet.Get("users.GetUserByID")
+	if err != nil {
+		log.Fatalf("Failed to get query with dot notation: %v", err)
+	}
+	fmt.Println("GetUserByID query (dot notation):", query)
+
     // You can also retrieve metadata for all query sets
     metas := sqlSet.GetSetsMetas()
     for _, meta := range metas {
