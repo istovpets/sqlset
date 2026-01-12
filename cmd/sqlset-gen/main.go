@@ -1,3 +1,17 @@
+// Command sqlset-gen is a code generation utility that processes .sql files
+// and generates Go code with constants for type-safe access to SQL queries.
+//
+// Usage:
+//
+//	go run github.com/istovpets/sqlset/cmd/sqlset-gen [flags]
+//
+// Flags:
+//
+//	-dir: Directory with .sql files.
+//	-out: Output file path for the generated Go code.
+//	-pkg: Package name for the generated file.
+//
+// For more information, see the documentation at https://github.com/istovpets/sqlset.
 package main
 
 import (
