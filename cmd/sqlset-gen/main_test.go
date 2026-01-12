@@ -13,16 +13,16 @@ import (
 func TestGenerateConstants_Smoke(t *testing.T) {
 	testFS := fstest.MapFS{
 		"users.sql": &fstest.MapFile{
-			Data: []byte(`--SQL: GetUserById
+			Data: []byte(`--SQL: get_user_by_id
 SELECT 1;
 --end
 
---SQL: CreateUser
+--SQL: create_user
 INSERT...
 --end`),
 		},
 		"posts.sql": &fstest.MapFile{
-			Data: []byte(`--SQL: GetPostById
+			Data: []byte(`--SQL: get-post-by-id
 SELECT 1;
 --end`),
 		},
@@ -31,15 +31,26 @@ SELECT 1;
 	sqlSet, err := sqlset.New(testFS)
 	require.NoError(t, err)
 
-	generated, err := GenerateConstants(sqlSet, "queries")
+	generated, err := GenerateFileContent(sqlSet, "queries", "test")
 	require.NoError(t, err)
-
-	// минимальные проверки
-	require.Contains(t, generated, `UsersGetUserById = "users.GetUserById"`)
-	require.Contains(t, generated, `UsersCreateUser = "users.CreateUser"`)
-	require.Contains(t, generated, `PostsGetPostById = "posts.GetPostById"`)
 
 	// if err := os.WriteFile("tmp_consts.go", []byte(generated), 0644); err != nil {
 	// 	log.Fatal(err)
 	// }
+
+	require.Contains(t, generated, `// posts.sql
+var Posts = struct {
+	GetPostById string
+}{
+	GetPostById: "posts.get-post-by-id",
+}
+
+// users.sql
+var Users = struct {
+	CreateUser string
+	GetUserById string
+}{
+	CreateUser: "users.create_user",
+	GetUserById: "users.get_user_by_id",
+}`)
 }
